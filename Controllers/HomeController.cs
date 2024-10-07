@@ -1,31 +1,52 @@
 ﻿using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ToDoListProjectJWT.Models;
+using Microsoft.IdentityModel.Tokens;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
 
 namespace ToDoListProjectJWT.Controllers;
 
-public class HomeController : Controller
+[Route("api/[controller]")]
+[ApiController]
+public class AuthController : ControllerBase
 {
-    private readonly ILogger<HomeController> _logger;
+    private readonly IConfiguration _configuration;
 
-    public HomeController(ILogger<HomeController> logger)
+    public AuthController(IConfiguration configuration)
     {
-        _logger = logger;
+        _configuration = configuration;
     }
 
-    public IActionResult Index()
+    [HttpPost("login")]
+    public IActionResult Login([FromBody] UserLogin userLogin)
     {
-        return View();
-    }
+        if (userLogin.Username == "usuario" && userLogin.Password == "senha")
+        {
+            var claims = new[]
+            {
+                new Claim(ClaimTypes.Name, userLogin.Username)
+            };
 
-    public IActionResult Privacy()
-    {
-        return View();
-    }
+            var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["Jwt:Key"]));
+            var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+            var token = new JwtSecurityToken(
+                issuer: _configuration["Jwt:Issuer"],
+                audience: _configuration["Jwt:Issuer"],
+                claims: claims,
+                expires: DateTime.Now.AddMinutes(30),
+                signingCredentials: creds);
 
-    [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
-    public IActionResult Error()
-    {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+            return Ok(new { token = new JwtSecurityTokenHandler().WriteToken(token) });
+        }
+
+        return Unauthorized();
     }
+}
+
+public class UserLogin
+{
+    public string Username { get; set; } 
+    public string Password { get; set; }
 }

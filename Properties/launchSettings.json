@@ -18,6 +18,8 @@
       }
     },
     "IIS Express": {
+      "applicationUrl": "http://localhost:5296",
+      "sslPort": 7172,
       "commandName": "IISExpress",
       "launchBrowser": true,
       "environmentVariables": {
